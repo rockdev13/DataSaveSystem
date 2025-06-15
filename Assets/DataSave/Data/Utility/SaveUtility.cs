@@ -31,7 +31,7 @@ namespace SaveLoadSystem
 
         public static byte[] ProcessSaveData(string json, byte[] encryptionKey, Compression comp, Encryption enc)
         {
-            byte[] data = null;
+            byte[] data;
 
             // Compress
             if (comp == Compression.GZIP)

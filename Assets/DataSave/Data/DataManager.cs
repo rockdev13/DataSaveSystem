@@ -59,8 +59,25 @@ namespace SaveLoadSystem
         public static async Task<T> LoadAsync<T>(string key)
         {
             if (ActiveSaveSlot == null) return default;
-
             return await ActiveSaveSlot.LoadAsync<T>(key);
+        }
+
+        /// <summary>
+        /// Deletes a value saved with the given key
+        /// </summary>
+        public static void DeleteValue(string key)
+        {
+            if (ActiveSaveSlot == null) return;
+            ActiveSaveSlot.DeleteKey(key);
+        }
+
+        /// <summary>
+        /// Deletes a value saved with the 
+        /// </summary>
+        public static async Task DeleteValueAsync(string key)
+        {
+            if (ActiveSaveSlot == null) return;
+            await ActiveSaveSlot.DeleteKeyAsync(key);
         }
 
         // Core functionality

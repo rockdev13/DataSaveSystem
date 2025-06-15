@@ -1,12 +1,39 @@
 using Newtonsoft.Json;
-using UnityEngine;
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace SaveLoadSystem
 {
-    public class UnityJsonConverters
+    public class JsonConverters
     {
+
+        public static readonly JsonSerializerSettings JsonSettings = new JsonSerializerSettings
+        {
+            Formatting = Formatting.Indented,
+            Converters = new List<JsonConverter>
+            {
+                new Vector2Converter(),
+                new Vector3Converter(),
+                new Vector4Converter(),
+                new Vector2IntConverter(),
+                new Vector3IntConverter(),
+                new QuaternionConverter(),
+                new ColorConverter(),
+                new Color32Converter(),
+                new RectConverter(),
+                new RectIntConverter(),
+                new BoundsConverter(),
+                new BoundsIntConverter(),
+                new Matrix4x4Converter(),
+                new RayConverter(),
+                new Ray2DConverter(),
+                new PlaneConverter(),
+                new AnimationCurveConverter(),
+                new GradientConverter()
+            }
+        };
+
         // Vector2 Converter
         public class Vector2Converter : JsonConverter<Vector2>
         {
