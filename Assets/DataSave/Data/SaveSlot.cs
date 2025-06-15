@@ -79,6 +79,8 @@ namespace SaveLoadSystem
             string emptyJson = "{}";
             byte[] data = SaveUtility.ProcessSaveData(emptyJson, _encryptionKey, CompressionType, EncryptionType);
             File.WriteAllBytes(SavePath, data);
+
+            _dataCacheManager.FromJson(emptyJson);
         }
         #endregion
 
