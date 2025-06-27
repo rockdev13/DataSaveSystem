@@ -101,48 +101,65 @@ namespace SaveLoadSystem
         {
             _fileAccessSemaphore.Wait();
 
-            // Update cache
-            _dataCacheManager.SetValue(key, value);
-
-            // Write data from new cache to file
-            string newJson = _dataCacheManager.ToJson();
-            byte[] finalData = SaveUtility.ProcessSaveData(newJson, _encryptionKey, CompressionType, EncryptionType);
-            File.WriteAllBytes(SavePath, finalData);
-
-            // Save metadata
-            SaveMetadata metaData = new SaveMetadata
+            try
             {
-                saveTime = DateTime.Now,
-                compression = CompressionType,
-                encryption = EncryptionType
-            };
+                // Update cache
+                _dataCacheManager.SetValue(key, value);
 
-            SaveMetadata(metaData);
-            _fileAccessSemaphore.Release();
+                // Write data from new cache to file
+                string newJson = _dataCacheManager.ToJson();
+                byte[] finalData = SaveUtility.ProcessSaveData(newJson, _encryptionKey, CompressionType, EncryptionType);
+                File.WriteAllBytes(SavePath, finalData);
+
+                // Save metadata
+                SaveMetadata metaData = new SaveMetadata
+                {
+                    saveTime = DateTime.Now,
+                    compression = CompressionType,
+                    encryption = EncryptionType
+                };
+
+                SaveMetadata(metaData);
+            }
+            finally
+            {
+                _fileAccessSemaphore.Release();
+            }
         }
 
         public async Task SaveAsync(string key, object value)
         {
             await _fileAccessSemaphore.WaitAsync();
 
-            // Update cache 
-            _dataCacheManager.SetValue(key, value);
+            try
+            {
+                // Update cache 
+                _dataCacheManager.SetValue(key, value);
 
-            // Write to file
+                // Write to file
+                string newJson = JsonConvert.SerializeObject(_dataCacheManager.Cache, JsonConverters.JsonSettings);
+                byte[] finalData = SaveUtility.ProcessSaveData(newJson, _encryptionKey, CompressionType, EncryptionType);
+                await File.WriteAllBytesAsync(SavePath, finalData);
+
+                // Save metadata
+                SaveMetadata metaData = new SaveMetadata
+                {
+                    saveTime = DateTime.Now,
+                    compression = CompressionType,
+                    encryption = EncryptionType
+                };
+
+                await SaveMetadataAsync(metaData);
+            }
+            finally {
+                _fileAccessSemaphore.Release();
+            }
+        }
+        private void SaveCacheToFile()
+        {
             string newJson = JsonConvert.SerializeObject(_dataCacheManager.Cache, JsonConverters.JsonSettings);
             byte[] finalData = SaveUtility.ProcessSaveData(newJson, _encryptionKey, CompressionType, EncryptionType);
-            await File.WriteAllBytesAsync(SavePath, finalData);
-
-            // Save metadata
-            SaveMetadata metaData = new SaveMetadata
-            {
-                saveTime = DateTime.Now,
-                compression = CompressionType,
-                encryption = EncryptionType
-            };
-
-            await SaveMetadataAsync(metaData);
-            _fileAccessSemaphore.Release();
+            File.WriteAllBytes(SavePath, finalData);
         }
         #endregion
 
@@ -158,6 +175,13 @@ namespace SaveLoadSystem
         public async Task DeleteKeyAsync(string key)
         {
             await Task.Run(() => DeleteKey(key));
+        }
+
+        public void ClearFiles()
+        {
+            if (File.Exists(SavePath)) File.Delete(SavePath);
+            if (File.Exists(_keyPath)) File.Delete(_keyPath);
+            if (File.Exists(_metadataPath)) File.Delete(_metadataPath);
         }
         #endregion
 
@@ -190,8 +214,6 @@ namespace SaveLoadSystem
             await File.WriteAllBytesAsync(_metadataPath, metadataData);
         }
 
-
-
         public SaveMetadata LoadMetadata()
         {
             if (!File.Exists(_metadataPath))
@@ -209,14 +231,6 @@ namespace SaveLoadSystem
             string decompressed = GZIP.Decompress(decrypted);
 
             return JsonConvert.DeserializeObject<SaveMetadata>(decompressed, JsonConverters.JsonSettings);
-        }
-        #endregion
-
-        private void SaveCacheToFile()
-        {
-            string newJson = JsonConvert.SerializeObject(_dataCacheManager.Cache, JsonConverters.JsonSettings);
-            byte[] finalData = SaveUtility.ProcessSaveData(newJson, _encryptionKey, CompressionType, EncryptionType);
-            File.WriteAllBytes(SavePath, finalData);
         }
 
         public bool Rename(string newName)
@@ -269,11 +283,18 @@ namespace SaveLoadSystem
             }
         }
 
-        public void ClearFiles()
+        public DateTime GetLastModified()
         {
-            if (File.Exists(SavePath)) File.Delete(SavePath);
-            if (File.Exists(_keyPath)) File.Delete(_keyPath);
-            if (File.Exists(_metadataPath)) File.Delete(_metadataPath);
+            try
+            {
+                if (!File.Exists(SavePath)) return default;
+                return File.GetLastWriteTime(SavePath);
+            }
+            catch (Exception ex)
+            {
+                CustomLogger.LogError($"Failed to get last modified time: {ex.Message}");
+                return default;
+            }
         }
 
         public long GetFileSize()
@@ -290,19 +311,7 @@ namespace SaveLoadSystem
             }
         }
 
-        public DateTime GetLastModified()
-        {
-            try
-            {
-                if (!File.Exists(SavePath)) return default;
-                return File.GetLastWriteTime(SavePath);
-            }
-            catch (Exception ex)
-            {
-                CustomLogger.LogError($"Failed to get last modified time: {ex.Message}");
-                return default;
-            }
-        }
+        #endregion
 
         public void Dispose()
         {
