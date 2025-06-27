@@ -161,6 +161,12 @@ namespace SaveLoadSystem
             byte[] finalData = SaveUtility.ProcessSaveData(newJson, _encryptionKey, CompressionType, EncryptionType);
             File.WriteAllBytes(SavePath, finalData);
         }
+        private async Task SaveCacheToFileAsync()
+        {
+            string newJson = JsonConvert.SerializeObject(_dataCacheManager.Cache, JsonConverters.JsonSettings);
+            byte[] finalData = SaveUtility.ProcessSaveData(newJson, _encryptionKey, CompressionType, EncryptionType);
+            await File.WriteAllBytesAsync(SavePath, finalData);
+        }
         #endregion
 
         #region Delete Methods
@@ -174,7 +180,16 @@ namespace SaveLoadSystem
 
         public async Task DeleteKeyAsync(string key)
         {
-            await Task.Run(() => DeleteKey(key));
+            await _fileAccessSemaphore.WaitAsync();
+            try
+            {
+                _dataCacheManager.RemoveValue(key);
+                await SaveCacheToFileAsync();
+            }
+            finally
+            {
+                _fileAccessSemaphore.Release();
+            }
         }
 
         public void ClearFiles()
