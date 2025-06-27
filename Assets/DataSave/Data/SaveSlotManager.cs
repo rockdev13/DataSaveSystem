@@ -12,6 +12,8 @@ namespace SaveLoadSystem
         internal readonly static List<SaveSlot> _saveSlots = new();
         internal static SaveSlot ActiveSaveSlot { get; private set; }
 
+        private static readonly object _lock = new(); 
+        
         internal static void Initialize()
         {
             string filePath = Path.Combine(Application.persistentDataPath, "Saveslots");
@@ -54,16 +56,17 @@ namespace SaveLoadSystem
 
         internal static void CreateSaveSlot(string newSlotName)
         {
-            if (DataManager.DoesSlotExist(newSlotName))
+            lock (_lock)
             {
-                CustomLogger.LogWarning($"Name already exists: {newSlotName}");
-                return;
+                if (DataManager.DoesSlotExist(newSlotName))
+                {
+                    CustomLogger.LogWarning($"Name already exists: {newSlotName}");
+                    return;
+                }
+
+                SaveSlot newSlot = new(newSlotName, DataManager.CompressionType, DataManager.EncryptionType);
+                _saveSlots.Add(newSlot);
             }
-
-            CustomLogger.LogInfo($"Creating save slot: {newSlotName}");
-
-            SaveSlot newSlot = new SaveSlot(newSlotName, DataManager.CompressionType, DataManager.EncryptionType);
-            _saveSlots.Add(newSlot);
         }
 
         internal static void DeleteSaveSlot(string newSlotName)

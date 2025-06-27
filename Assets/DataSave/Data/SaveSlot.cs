@@ -87,7 +87,15 @@ namespace SaveLoadSystem
         #region Load Methods
         public T Load<T>(string key)
         {
-            return _dataCacheManager.GetValue<T>(key);
+            _fileAccessSemaphore.Wait();
+            try
+            {
+                return _dataCacheManager.GetValue<T>(key);
+            }
+            finally
+            {
+                _fileAccessSemaphore.Release();
+            }
         }
 
         public async Task<T> LoadAsync<T>(string key)
