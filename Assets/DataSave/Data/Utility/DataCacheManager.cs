@@ -13,9 +13,14 @@ namespace SaveLoadSystem
             Cache = new Dictionary<string, object>();
         }
 
+        private readonly object _cacheLock = new object();
+
         public void SetValue(string key, object value)
         {
-            Cache[key] = value;
+            lock (_cacheLock)
+            {
+                Cache[key] = value;
+            }
         }
 
         public T GetValue<T>(string key)

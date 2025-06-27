@@ -83,6 +83,7 @@ namespace SaveLoadSystem
                 }
 
                 targetSaveSlot.ClearFiles();
+                targetSaveSlot.Dispose();
 
                 _saveSlots.Remove(targetSaveSlot);
             }
