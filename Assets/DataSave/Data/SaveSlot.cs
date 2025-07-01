@@ -142,7 +142,8 @@ namespace SaveLoadSystem
 
                 // Write to file
                 string newJson = JsonConvert.SerializeObject(_dataCacheManager.Cache, JsonConverters.JsonSettings);
-                byte[] finalData = SaveUtility.ProcessSaveData(newJson, _encryptionKey, CompressionType, EncryptionType);
+                byte[] finalData = await Task.Run(() => 
+                    SaveUtility.ProcessSaveData(newJson, _encryptionKey, CompressionType, EncryptionType));
                 await File.WriteAllBytesAsync(SavePath, finalData);
 
                 // Save metadata
