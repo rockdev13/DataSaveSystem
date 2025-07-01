@@ -18,9 +18,9 @@ namespace SaveLoadSystem.Examples
             }
         }
 
-        private async void Awake()
+        private void Awake()
         {
-            ClickAmount = await DataManager.LoadAsync<int>("Clicks");
+            ClickAmount = DataManager.Load<int>("Clicks");
         }
 
         public async void Click()

@@ -51,18 +51,6 @@ namespace SaveLoadSystem
         }
 
         /// <summary>
-        /// Loads a value from a given key (asynchronous)
-        /// </summary>
-        /// <typeparam name="T">Type of the value to load</typeparam>
-        /// <param name="key">The key to access the saved data</param>
-        /// <returns>The loaded value or default if not found</returns>
-        public static async Task<T> LoadAsync<T>(string key)
-        {
-            if (ActiveSaveSlot == null) return default;
-            return await ActiveSaveSlot.LoadAsync<T>(key);
-        }
-
-        /// <summary>
         /// Deletes a value saved with the given key
         /// </summary>
         public static void DeleteValue(string key)

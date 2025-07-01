@@ -95,12 +95,8 @@ namespace SaveLoadSystem
             finally
             {
                 _fileAccessSemaphore.Release();
+                CustomLogger.Log($"Loaded data from key: {key}");
             }
-        }
-
-        public async Task<T> LoadAsync<T>(string key)
-        {
-            return await Task.Run(() => Load<T>(key));
         }
         #endregion
 
