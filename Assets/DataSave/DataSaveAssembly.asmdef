@@ -1,0 +1,7 @@
+{
+    "name": "DataSaveAssembly",
+    "references": [
+        "Unity.Nuget.Newtonsoft-Json",
+        "Unity.TextMeshPro"
+    ]
+}

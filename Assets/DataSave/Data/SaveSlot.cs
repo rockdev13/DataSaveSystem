@@ -128,6 +128,7 @@ namespace SaveLoadSystem
             finally
             {
                 _fileAccessSemaphore.Release();
+                CustomLogger.Log($"Saved value: {JsonConvert.SerializeObject(value, JsonConverters.JsonSettings)} with key: {key}");
             }
         }
 
@@ -158,6 +159,7 @@ namespace SaveLoadSystem
             }
             finally {
                 _fileAccessSemaphore.Release();
+                CustomLogger.Log($"Saved value: {JsonConvert.SerializeObject(value)} with key: {key}");
             }
         }
         private void SaveCacheToFile()
@@ -178,9 +180,17 @@ namespace SaveLoadSystem
         public void DeleteKey(string key)
         {
             _fileAccessSemaphore.Wait();
-            _dataCacheManager.RemoveValue(key);
-            SaveCacheToFile();
-            _fileAccessSemaphore.Release();
+
+            try
+            {
+                _dataCacheManager.RemoveValue(key);
+                SaveCacheToFile();
+            }
+            finally
+            {
+                _fileAccessSemaphore.Release();
+                CustomLogger.Log($"Deleted key: {key}");
+            }
         }
 
         public async Task DeleteKeyAsync(string key)
@@ -194,6 +204,7 @@ namespace SaveLoadSystem
             finally
             {
                 _fileAccessSemaphore.Release();
+                CustomLogger.Log($"Deleted key: {key}");
             }
         }
 
