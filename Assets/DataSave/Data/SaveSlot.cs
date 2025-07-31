@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -344,6 +345,11 @@ namespace SaveLoadSystem
 
         #endregion
 
+        public Dictionary<string, object> GetCacheData()
+        {
+            return _dataCacheManager.Cache;
+        }
+        
         public void Dispose()
         {
             _fileAccessSemaphore?.Dispose();
