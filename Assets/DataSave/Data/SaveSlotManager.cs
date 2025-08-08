@@ -56,6 +56,12 @@ namespace SaveLoadSystem
 
         internal static void CreateSaveSlot(string newSlotName)
         {
+            if (!IsValidSlotName(newSlotName))
+            {
+                CustomLogger.LogWarning($"{newSlotName} is an invalid name due to invalid characters");
+                return;
+            }
+
             lock (_lock)
             {
                 if (DataManager.DoesSlotExist(newSlotName))
@@ -99,6 +105,12 @@ namespace SaveLoadSystem
 
         internal static void RenameSaveSlot(string oldName, string newName)
         {
+            if (!IsValidSlotName(newName))
+            {
+                CustomLogger.LogWarning($"{newName} is an invalid name due to invalid characters");
+                return;
+            }
+
             CustomLogger.LogInfo($"Renaming save slot: {oldName} to {newName}");
 
             SaveSlot targetSlot = _saveSlots.FirstOrDefault(x => x.Name == oldName);
@@ -125,6 +137,16 @@ namespace SaveLoadSystem
             }
 
             _saveSlots.Clear();
+        }
+
+        internal static bool IsValidSlotName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return false;
+
+            // Check for invalid file system characters
+            char[] invalidChars = Path.GetInvalidFileNameChars();
+            return !name.Any(c => invalidChars.Contains(c));
         }
     }
 }

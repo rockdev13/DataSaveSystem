@@ -78,5 +78,6 @@ namespace SaveLoadSystem
         // Helper methods
         public static List<SaveSlot> GetSaveSlots() => SaveSlotManager._saveSlots;
         public static bool DoesSlotExist(string name) => SaveSlotManager.DoesSlotExist(name);
+        public static bool IsValidSlotName(string name) => SaveSlotManager.IsValidSlotName(name);
     }
 }
