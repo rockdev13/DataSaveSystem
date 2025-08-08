@@ -86,8 +86,14 @@ namespace SaveLoadSystem
         #endregion
 
         #region Load Methods
+
+#pragma warning disable CS0162 // Unreachable code detected
         public T Load<T>(string key)
         {
+#if UNITY_WEBGL
+            return LoadWebGL<T>(key);
+#endif
+
             _fileAccessSemaphore.Wait();
             try
             {
@@ -99,11 +105,26 @@ namespace SaveLoadSystem
                 CustomLogger.Log($"Loaded data from key: {key}");
             }
         }
+
+        private T LoadWebGL<T>(string key)
+        {
+            lock (_webglLock)
+            {
+                return _dataCacheManager.GetValue<T>(key);
+            }
+        }
         #endregion
 
         #region Save Methods
+
+#pragma warning disable CS0162 // Unreachable code detected
         public void Save(string key, object value)
         {
+#if UNITY_WEBGL
+            SaveWebGL(key, value);
+            return;
+#endif
+
             _fileAccessSemaphore.Wait();
 
             try
@@ -133,8 +154,50 @@ namespace SaveLoadSystem
             }
         }
 
+        #if UNITY_WEBGL && !UNITY_EDITOR
+            [System.Runtime.InteropServices.DllImport("__Internal")]
+            private static extern void SyncFS();
+        #endif
+
+        private readonly object _webglLock = new object();
+
+        private void SaveWebGL(string key, object value)
+        {
+            lock (_webglLock)
+            {
+                // Update cache
+                _dataCacheManager.SetValue(key, value);
+
+                // Write data from new cache to file
+                string newJson = _dataCacheManager.ToJson();
+                byte[] finalData = SaveUtility.ProcessSaveData(newJson, _encryptionKey, CompressionType, EncryptionType);
+                File.WriteAllBytes(SavePath, finalData);
+
+                // Save metadata
+                SaveMetadata metaData = new SaveMetadata
+                {
+                    saveTime = DateTime.Now,
+                    compression = CompressionType,
+                    encryption = EncryptionType
+                };
+
+                SaveMetadata(metaData);
+                #if UNITY_WEBGL && !UNITY_EDITOR
+                    // Force flush to IndexedDB
+                    SyncFS();
+                #endif
+                CustomLogger.Log($"Saved value: {JsonConvert.SerializeObject(value, JsonConverters.JsonSettings)} with key: {key}");
+            }
+        }
+
+#pragma warning disable CS0162 // Unreachable code detected
         public async Task SaveAsync(string key, object value)
         {
+#if UNITY_WEBGL
+            Debug.LogError("SaveAsync not supported on WebGL. Use Save() instead.");
+            return;
+#endif
+
             await _fileAccessSemaphore.WaitAsync();
 
             try
@@ -165,10 +228,24 @@ namespace SaveLoadSystem
         }
         private void SaveCacheToFile()
         {
+#if UNITY_WEBGL
+    lock (_webglLock)
+    {
+#endif
             string newJson = JsonConvert.SerializeObject(_dataCacheManager.Cache, JsonConverters.JsonSettings);
             byte[] finalData = SaveUtility.ProcessSaveData(newJson, _encryptionKey, CompressionType, EncryptionType);
             File.WriteAllBytes(SavePath, finalData);
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+            // Force flush to IndexedDB
+            SyncFS();
+#endif
+
+#if UNITY_WEBGL
+            }
+#endif
         }
+
         private async Task SaveCacheToFileAsync()
         {
             string newJson = JsonConvert.SerializeObject(_dataCacheManager.Cache, JsonConverters.JsonSettings);
@@ -178,8 +255,15 @@ namespace SaveLoadSystem
         #endregion
 
         #region Delete Methods
+
+#pragma warning disable CS0162 // Unreachable code detected
         public void DeleteKey(string key)
         {
+#if UNITY_WEBGL
+            DeleteKeyWebGL(key);
+            return;
+#endif
+
             _fileAccessSemaphore.Wait();
 
             try
@@ -194,8 +278,29 @@ namespace SaveLoadSystem
             }
         }
 
+        private void DeleteKeyWebGL(string key)
+        {
+            lock (_webglLock)
+            {
+                _dataCacheManager.RemoveValue(key);
+                SaveCacheToFile();
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+                // Force flush to IndexedDB
+                SyncFS();
+#endif
+
+                CustomLogger.Log($"Deleted key: {key}");
+            }
+        }
+
         public async Task DeleteKeyAsync(string key)
         {
+#if UNITY_WEBGL
+            Debug.LogError("DeleteKeyAsync not supported on WebGL. Use DeleteKey() instead.");
+            return;
+#endif
+
             await _fileAccessSemaphore.WaitAsync();
             try
             {
@@ -215,7 +320,7 @@ namespace SaveLoadSystem
             if (File.Exists(_keyPath)) File.Delete(_keyPath);
             if (File.Exists(_metadataPath)) File.Delete(_metadataPath);
         }
-        #endregion
+#endregion
 
         #region Metadata
         private void SaveMetadata(SaveMetadata metadata)
@@ -352,7 +457,9 @@ namespace SaveLoadSystem
         
         public void Dispose()
         {
+#if !UNITY_WEBGL
             _fileAccessSemaphore?.Dispose();
+#endif
         }
     }
 }
